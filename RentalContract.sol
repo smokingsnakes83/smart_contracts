@@ -10,7 +10,6 @@ contract RentalContract {
     uint256 public contractStartTimestamp;
     uint256 public endContract;
     uint256 public renewDuration;
-    uint256 public renovation;
     string  message;
 
     event StartRentalContract(
@@ -38,15 +37,13 @@ contract RentalContract {
         uint256 _rentalPrice,
         uint256 _contractDuration
     ) public {
-        require(renter != address(owner),"The renter's address must be different from the owner's address");
-        require(renter != address(0), "Renter address invalid");
-        require(rentalPrice > 0, "The rental price must be greater than 0");
-        require(contractDuration > 0,"The contract duration must be greater than 0");
-
+        require(_renter != address(owner),"The renter's address must be different from the owner's address");
+        require(_renter != address(0), "Renter address invalid");
+        require(_rentalPrice > 0, "The rental price must be greater than 0");
+        require(_contractDuration > 0,"The contract duration must be greater than 0");
         //avoid reassigning variable state, avoid the same rental contract from being issued to more than one
         //require(renter == address(0), "The contract has already initiate");
        
-
         renter = _renter;
         propertyAddress = _propertyAddress;
         rentalPrice = _rentalPrice;
@@ -94,6 +91,7 @@ contract RentalContract {
         renter = _renter;
         renewDuration = _renewDuration;
         endContract += renewDuration;
+        contractDuration += renewDuration;
     }
 
     function getRenewContract()
