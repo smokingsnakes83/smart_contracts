@@ -32,7 +32,12 @@ contract RentalContract {
         _;
     }
 
-    modifier RulesForStartingRentalContract() {
+    function setStartRentalContract(
+        address _renter,
+        string memory _propertyAddress,
+        uint256 _rentalPrice,
+        uint256 _contractDuration
+    ) public {
         require(renter != address(owner),"The renter's address must be different from the owner's address");
         require(renter != address(0), "Renter address invalid");
         require(rentalPrice > 0, "The rental price must be greater than 0");
@@ -40,16 +45,7 @@ contract RentalContract {
 
         //avoid reassigning variable state, avoid the same rental contract from being issued to more than one
         //require(renter == address(0), "The contract has already initiate");
-        _;
-    }
-
-    function setStartRentalContract(
-        address _renter,
-        string memory _propertyAddress,
-        uint256 _rentalPrice,
-        uint256 _contractDuration
-    ) public {
-        
+       
 
         renter = _renter;
         propertyAddress = _propertyAddress;
@@ -97,7 +93,7 @@ contract RentalContract {
         require(_renter != address(0));
         renter = _renter;
         renewDuration = _renewDuration;
-        renovation = endContract += renewDuration;
+        endContract += renewDuration;
     }
 
     function getRenewContract()
@@ -105,11 +101,10 @@ contract RentalContract {
         view
         returns (
             address,
-            uint256,
             uint256
         )
     {
-        return (renter, renewDuration, renovation);
+        return (renter, renewDuration);
     }
 
     function RevokeRentalContract() public {
@@ -122,12 +117,12 @@ contract RentalContract {
         message = "This rental contract has been revoked";
     }
 
-    function expirationCheck() public view returns (string memory) {
+    function statusCheck() public view returns (string memory) {
         uint256 currentDay = block.timestamp;
         string memory expired = "The contract has expired";
         string memory notExpired = "The contract has not yet expired";
 
-        if (currentDay > endContract && currentDay > renovation) {
+        if (currentDay > endContract) {
             return expired;
         } else {
             return notExpired;
