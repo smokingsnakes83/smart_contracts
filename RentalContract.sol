@@ -4,126 +4,169 @@ pragma solidity 0.8.24;
 contract RentalContract {
     address public owner;
     address public renter;
-    string public propertyAddress;
-    uint256 public rentalPrice;
-    uint256 public contractDuration;
-    uint256 public contractStartTimestamp;
-    uint256 public endContract;
-    uint256 public renewDuration;
-    string  message;
+    /*string public propertyAddress;*/
+    uint public priceInWei;
+    uint public contractDuration;
+    uint public contractStartTimestamp;
+    uint public endContract;
+    uint public renovation;
+    bool public contractActivated;
+    
 
-    event StartRentalContract(
-        address owner,
-        address renter,
-        string propertyAddress,
-        uint256 rentalPrice,
-        uint256 contractDuration,
-        uint256 contractStartTimestamp
-    );
-
+    
     constructor() {
         owner = msg.sender;
         contractStartTimestamp = block.timestamp;
+        priceInWei = 10**15;
     }
 
     modifier onlyOwner() {
-        require(msg.sender == owner,"Only the owner can initiate a Rental Contract");
+        require(msg.sender == owner, "Only the owner can start a Contract");
         _;
     }
 
-    function setStartRentalContract(
-        address _renter,
-        string memory _propertyAddress,
-        uint256 _rentalPrice,
-        uint256 _contractDuration
-    ) public {
+    event starting(
+        address owner,
+        address renter,
+        /*string propertyAddress,*/
+        uint priceInWei,
+        uint contractDuration,
+        uint contractStartTimestamp,
+        uint endContract,
+        uint renovation,
+        bool contractActivated
+    );
+
+    modifier startContractRules(address _renter, uint _contractDuration) {
+        require((address(this).balance) > 0, "You need to deposit 0.001ETH to start contract");
+        require((address(this).balance) == 10**15, "The deposit amount is 0.001ETH");
         require(_renter != address(owner),"The renter's address must be different from the owner's address");
         require(_renter != address(0), "Renter address invalid");
-        require(_rentalPrice > 0, "The rental price must be greater than 0");
-        require(_contractDuration > 0,"The contract duration must be greater than 0");
+        require(_contractDuration > 0, "The contract duration must be greater than 0");
+        
         //avoid reassigning variable state, avoid the same rental contract from being issued to more than one
         //require(renter == address(0), "The contract has already initiate");
-       
-        renter = _renter;
-        propertyAddress = _propertyAddress;
-        rentalPrice = _rentalPrice;
-        contractDuration = _contractDuration;
-        endContract = (contractStartTimestamp + contractDuration);
+         _;
+    }
 
-        emit StartRentalContract(
+    function startContract(address _renter,/*string memory _propertyAddress,*/ uint _contractDuration) 
+        public startContractRules(_renter, _contractDuration) {
+        renter = _renter;
+        /*propertyAddress = _propertyAddress;*/
+        contractDuration = _contractDuration;
+        contractStartTimestamp = block.timestamp;
+        endContract = (contractStartTimestamp + contractDuration);
+        contractActivated = true;
+
+        emit starting(
             owner,
             renter,
-            propertyAddress,
-            rentalPrice,
+            /*propertyAddress,*/
+            priceInWei,
             contractDuration,
-            contractStartTimestamp
+            contractStartTimestamp,
+            endContract,
+            renovation,
+            contractActivated
         );
     }
 
-    function getStartRentalContract()
+    function getStarContract()
         public
         view
         returns (
             address,
-            string memory,
-            uint256,
-            uint256,
-            uint256,
-            uint256,
-            string memory
+            /*string memory,*/
+            uint,
+            uint,
+            uint,
+            uint
         )
     {
         return (
             renter,
-            propertyAddress,
-            rentalPrice,
+            /*propertyAddress,*/
+            priceInWei,
             contractDuration,
             contractStartTimestamp,
-            endContract,
-            message
+            endContract
         );
     }
 
-    function setRenewContract(address _renter, uint256 _renewDuration) public {
-        require(_renter == renter,"Only the renter can renew the rental contract");
-        require(_renewDuration > 0,"The renew duration must be greater than 0");
+    modifier renovationRules(address _renter, uint _renovation) {
+        require(contractActivated == true, "The contract is not activated");
+        require(_renter == renter, "Only the renter can renew the rental contract");
+        require(_renovation > 0, "The renovation must be greater than 0");
         require(_renter != address(0));
+        /*require(_currentDay > endContract, "The current day is not greater than end day contract");
+        require((address(this).balance) == 10**15);*/
+        _;
+    }
+
+    function renovationContract(address _renter, uint _renovation) public renovationRules(_renter, _renovation) {
         renter = _renter;
-        renewDuration = _renewDuration;
-        endContract += renewDuration;
-        contractDuration += renewDuration;
+        renovation = _renovation;
+        endContract += renovation;
+        contractDuration += renovation;
+
+        /*uint currentDay = block.timestamp;/*
+
+        /*if(currentDay == endContract){
+            payable(owner).transfer(address(this).balance);
+        }*/
     }
 
-    function getRenewContract()
-        public
-        view
-        returns (
-            address,
-            uint256
-        )
-    {
-        return (renter, renewDuration);
+    function getRenovationContract() public view returns (address, uint) {
+        return (renter, renovation);
     }
 
-    function RevokeRentalContract() public {
-        renter = address(0);
-        propertyAddress = "";
-        rentalPrice = 0;
-        contractDuration = 0;
-        contractStartTimestamp = 0;
-        endContract = 0;
-        message = "This rental contract has been revoked";
+    modifier revoke() {
+        require(msg.sender == owner, "Only owner can to revoke the contract");
+        require(contractActivated == true, "Contract not activate");
+        _;
+    }
+
+    event revoked(bool contractActivated, address owner);
+
+    function revokeContract() public revoke {
+        contractActivated = false;
+        emit revoked(contractActivated, owner);
     }
 
     function statusCheck() public view returns (string memory) {
-        uint256 currentDay = block.timestamp;
-        string memory expired = "The contract has expired";
-        string memory notExpired = "The contract has not yet expired";
+        uint currentDay = block.timestamp;
+        string memory expired = "Expired";
+        string memory activated = "Activated";
+        string memory waiting = "Waiting renter data";
+        string memory revokedMsg = "Revoked";
 
-        if (currentDay > endContract) {
+        if (contractActivated == true) {
+            return activated;
+        } else if (contractActivated == false) {
+            return revokedMsg;
+        } else if (currentDay > endContract) {
             return expired;
-        } else {
-            return notExpired;
+        } else if (renter == address(0)){
+            return waiting;
         }
+        else {
+            return waiting;
+        }
+    }
+    
+    event amountReceive(address _renter, uint value);
+
+    receive() external payable { 
+        emit amountReceive(msg.sender, msg.value);
+    }   
+
+    modifier whitdrawRules() {
+        require((address(this).balance > 0),"Insufficient amount to withdraw");
+        require(msg.sender == owner, "Only owner can make a withdrawal");
+        _;
+    }
+
+    function withdraw() external whitdrawRules {
+        payable(owner).transfer(address(this).balance);
     }
 }
