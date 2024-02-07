@@ -38,8 +38,8 @@ contract RentalContract {
     );
 
     modifier startContractRules(address _renter, uint _contractDuration) {
-        require((address(this).balance) > 0, "You need to deposit 0.001ETH to start contract");
-        require((address(this).balance) == 10**15, "The deposit amount is 0.001ETH");
+        require((address(this).balance) > 0, "You need to deposit 0.001 ETH to start contract");
+        require((address(this).balance) == 10**15, "deposit amount 0.001 ETH");
         require(_renter != address(owner),"The renter's address must be different from the owner's address");
         require(_renter != address(0), "Renter address invalid");
         require(_contractDuration > 0, "The contract duration must be greater than 0");
@@ -49,7 +49,7 @@ contract RentalContract {
          _;
     }
 
-    function startContract(address _renter,/*string memory _propertyAddress,*/ uint _contractDuration) 
+    function startContract(address payable  _renter,/*string memory _propertyAddress,*/ uint _contractDuration) 
         public startContractRules(_renter, _contractDuration) {
         renter = _renter;
         /*propertyAddress = _propertyAddress;*/
@@ -98,22 +98,17 @@ contract RentalContract {
         require(_renter == renter, "Only the renter can renew the rental contract");
         require(_renovation > 0, "The renovation must be greater than 0");
         require(_renter != address(0));
-        /*require(_currentDay > endContract, "The current day is not greater than end day contract");
-        require((address(this).balance) == 10**15);*/
+        require((address(this).balance) > 0, "You need to deposit 0.001 ETH to renew contract");
+        require((address(this).balance) == 10**15, "deposit amount 0.001 ETH");
         _;
     }
 
-    function renovationContract(address _renter, uint _renovation) public renovationRules(_renter, _renovation) {
+    function renovationContract(address  _renter, uint _renovation) public renovationRules(_renter, _renovation) {
         renter = _renter;
         renovation = _renovation;
         endContract += renovation;
         contractDuration += renovation;
-
-        /*uint currentDay = block.timestamp;/*
-
-        /*if(currentDay == endContract){
-            payable(owner).transfer(address(this).balance);
-        }*/
+        
     }
 
     function getRenovationContract() public view returns (address, uint) {
