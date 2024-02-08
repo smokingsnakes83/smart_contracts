@@ -3,7 +3,7 @@ pragma solidity 0.8.24;
 
 contract RentalContract {
     address public owner;
-    address public renter;
+    address payable public renter;
     /*string public propertyAddress;*/
     uint public priceInWei;
     uint public contractDuration;
@@ -12,17 +12,10 @@ contract RentalContract {
     uint public renovation;
     bool public contractActivated;
     
-
-    
     constructor() {
         owner = msg.sender;
         contractStartTimestamp = block.timestamp;
         priceInWei = 10**15;
-    }
-
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only the owner can start a Contract");
-        _;
     }
 
     event starting(
@@ -38,7 +31,8 @@ contract RentalContract {
     );
 
     modifier startContractRules(address _renter, uint _contractDuration) {
-        require((address(this).balance) > 0, "You need to deposit 0.001 ETH to start contract");
+        require(msg.sender == owner, "Only the owner can start a Contract");
+        require((address(this).balance) > 0, "Deposit 0.001 ETH to start contract");
         require((address(this).balance) == 10**15, "deposit amount 0.001 ETH");
         require(_renter != address(owner),"The renter's address must be different from the owner's address");
         require(_renter != address(0), "Renter address invalid");
@@ -57,6 +51,8 @@ contract RentalContract {
         contractStartTimestamp = block.timestamp;
         endContract = (contractStartTimestamp + contractDuration);
         contractActivated = true;
+
+        payable(owner).transfer(address(this).balance);
 
         emit starting(
             owner,
@@ -93,22 +89,24 @@ contract RentalContract {
         );
     }
 
-    modifier renovationRules(address _renter, uint _renovation) {
+    modifier renovationRules(address payable  _renter, uint _renovation) {
         require(contractActivated == true, "The contract is not activated");
         require(_renter == renter, "Only the renter can renew the rental contract");
         require(_renovation > 0, "The renovation must be greater than 0");
         require(_renter != address(0));
-        require((address(this).balance) > 0, "You need to deposit 0.001 ETH to renew contract");
-        require((address(this).balance) == 10**15, "deposit amount 0.001 ETH");
+        require(block.timestamp > endContract, "The renewal day must be greater than end day contract");
+        require((address(this).balance) > 0, "Deposit 0.001 ETH to renew contract");
+        require((address(this).balance) == 10**15, "deposit amount 0.001 ETH");    
         _;
     }
 
-    function renovationContract(address  _renter, uint _renovation) public renovationRules(_renter, _renovation) {
+    function renovationContract(address payable  _renter, uint _renovation) public renovationRules(_renter, _renovation) {
         renter = _renter;
         renovation = _renovation;
         endContract += renovation;
-        contractDuration += renovation;
-        
+        contractDuration += renovation; 
+
+           
     }
 
     function getRenovationContract() public view returns (address, uint) {
