@@ -127,17 +127,16 @@ contract RentalContract {
     }
 
     function statusCheck() public view returns (string memory) {
-        uint currentDay = block.timestamp;
         string memory expired = "Expired";
         string memory activated = "Activated";
         string memory waiting = "Waiting renter data";
         string memory revokedMsg = "Revoked";
 
-        if (contractActivated == true) {
+        if (contractActivated == true && endContract > block.timestamp) {
             return activated;
-        } else if (contractActivated == false) {
+        } else if (contractActivated == false && renter != address(0)) {
             return revokedMsg;
-        } else if (currentDay > endContract) {
+        } else if (block.timestamp > endContract && contractActivated == true) {
             return expired;
         } else if (renter == address(0)){
             return waiting;
@@ -156,10 +155,13 @@ contract RentalContract {
     modifier whitdrawRules() {
         require((address(this).balance > 0),"Insufficient amount to withdraw");
         require(msg.sender == owner, "Only owner can make a withdrawal");
+        require(contractActivated == true);
         _;
     }
 
     function withdraw() external whitdrawRules {
         payable(owner).transfer(address(this).balance);
     }
+
+    //0x7fa35FF9E0E9BEce70575937F59F16730FdDEa8B
 }
