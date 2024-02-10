@@ -32,14 +32,14 @@ contract RentalContract {
 
     modifier startContractRules(address _renter, uint _contractDuration) {
         require(msg.sender == owner, "Only the owner can start a Contract");
-        require((address(this).balance) > 0, "Deposit 0.001 ETH to start contract");
-        require((address(this).balance) == 10**15, "deposit amount 0.001 ETH");
+        /*require((address(this).balance) > 0, "Deposit 0.001 ETH to start contract");
+        require((address(this).balance) == 10**15, "deposit amount 0.001 ETH");*/
         require(_renter != address(owner),"The renter's address must be different from the owner's address");
         require(_renter != address(0), "Renter address invalid");
         require(_contractDuration > 0, "The contract duration must be greater than 0");
         
-        //avoid reassigning variable state, avoid the same rental contract from being issued to more than one
-        //require(renter == address(0), "The contract has already initiate");
+        /*avoid reassigning variable state, avoid the same rental contract from being issued to more than one
+        require(renter == address(0), "The contract has already initiate");*/
          _;
     }
 
@@ -95,18 +95,17 @@ contract RentalContract {
         require(_renovation > 0, "The renovation must be greater than 0");
         require(_renter != address(0));
         require(block.timestamp > endContract, "The renewal day must be greater than end day contract");
-        require((address(this).balance) > 0, "Deposit 0.001 ETH to renew contract");
-        require((address(this).balance) == 10**15, "deposit amount 0.001 ETH");    
+        /*require((address(this).balance) > 0, "Deposit 0.001 ETH to renew contract");
+        require((address(this).balance) == 10**15, "deposit amount 0.001 ETH"); */   
         _;
     }
 
     function renovationContract(address payable  _renter, uint _renovation) public renovationRules(_renter, _renovation) {
         renter = _renter;
         renovation = _renovation;
+        endContract = block.timestamp;
         endContract += renovation;
-        contractDuration += renovation; 
-
-           
+        contractDuration += renovation;           
     }
 
     function getRenovationContract() public view returns (address, uint) {
@@ -126,23 +125,23 @@ contract RentalContract {
         emit revoked(contractActivated, owner);
     }
 
-    function statusCheck() public view returns (string memory) {
+    function statusCheck() public view returns (string memory, uint) {
         string memory expired = "Expired";
         string memory activated = "Activated";
-        string memory waiting = "Waiting renter data";
+        string memory waiting = "The contract is not started";
         string memory revokedMsg = "Revoked";
 
-        if (contractActivated == true && endContract > block.timestamp) {
-            return activated;
+        if (contractActivated == true && block.timestamp < endContract) {
+            return (activated, block.timestamp);
         } else if (contractActivated == false && renter != address(0)) {
-            return revokedMsg;
+            return (revokedMsg, block.timestamp);
         } else if (block.timestamp > endContract && contractActivated == true) {
-            return expired;
+            return (expired, block.timestamp);
         } else if (renter == address(0)){
-            return waiting;
+            return (waiting, block.timestamp);
         }
         else {
-            return waiting;
+            return ("", block.timestamp);
         }
     }
     
@@ -163,5 +162,5 @@ contract RentalContract {
         payable(owner).transfer(address(this).balance);
     }
 
-    //0x7fa35FF9E0E9BEce70575937F59F16730FdDEa8B
+    
 }
