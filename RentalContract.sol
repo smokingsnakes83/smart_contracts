@@ -5,12 +5,12 @@ contract RentalContract {
     address public owner;
     address payable public renter;
     /*string public propertyAddress;*/
-    uint public priceInWei;
-    uint public contractDuration;
-    uint public contractStartTimestamp;
-    uint public endContract;
-    uint public renovation;
-    bool public contractActivated;
+    uint public priceInWei = 0;
+    uint public contractDuration = 0;
+    uint public contractStartTimestamp = 0;
+    uint public endContract = 0;
+    uint public renovation = 0;
+    bool public contractActivated = false;
     
     constructor() {
         owner = msg.sender;
@@ -32,14 +32,14 @@ contract RentalContract {
 
     modifier startContractRules(address _renter, uint _contractDuration) {
         require(msg.sender == owner, "Only the owner can start a Contract");
-        /*require((address(this).balance) > 0, "Deposit 0.001 ETH to start contract");
-        require((address(this).balance) == 10**15, "deposit amount 0.001 ETH");*/
+        require((address(this).balance) > 0, "Deposit 0.001 ETH to start contract");
+        require((address(this).balance) == 10**15, "deposit amount 0.001 ETH");
         require(_renter != address(owner),"The renter's address must be different from the owner's address");
         require(_renter != address(0), "Renter address invalid");
         require(_contractDuration > 0, "The contract duration must be greater than 0");
         
-        /*avoid reassigning variable state, avoid the same rental contract from being issued to more than one
-        require(renter == address(0), "The contract has already initiate");*/
+        //avoid reassigning variable state, avoid the same rental contract from being issued to more than one
+        require(renter == address(0), "contract is already active");
          _;
     }
 
@@ -90,13 +90,13 @@ contract RentalContract {
     }
 
     modifier renovationRules(address payable  _renter, uint _renovation) {
-        require(contractActivated == true, "The contract is not activated");
+        require(contractActivated == true, "The contract is not active");
         require(_renter == renter, "Only the renter can renew the rental contract");
         require(_renovation > 0, "The renovation must be greater than 0");
         require(_renter != address(0));
         require(block.timestamp > endContract, "The renewal day must be greater than end day contract");
-        /*require((address(this).balance) > 0, "Deposit 0.001 ETH to renew contract");
-        require((address(this).balance) == 10**15, "deposit amount 0.001 ETH"); */   
+        require((address(this).balance) > 0, "Deposit 0.001 ETH to renew contract");
+        require((address(this).balance) == 10**15, "deposit amount 0.001 ETH");   
         _;
     }
 
@@ -114,7 +114,7 @@ contract RentalContract {
 
     modifier revoke() {
         require(msg.sender == owner, "Only owner can to revoke the contract");
-        require(contractActivated == true, "Contract not activate");
+        require(contractActivated == true, "Contract is not active");
         _;
     }
 
@@ -127,8 +127,8 @@ contract RentalContract {
 
     function statusCheck() public view returns (string memory, uint) {
         string memory expired = "Expired";
-        string memory activated = "Activated";
-        string memory waiting = "The contract is not started";
+        string memory activated = "Active";
+        string memory waiting = "Waiting for renter data";
         string memory revokedMsg = "Revoked";
 
         if (contractActivated == true && block.timestamp < endContract) {
@@ -137,11 +137,8 @@ contract RentalContract {
             return (revokedMsg, block.timestamp);
         } else if (block.timestamp > endContract && contractActivated == true) {
             return (expired, block.timestamp);
-        } else if (renter == address(0)){
+        } else {
             return (waiting, block.timestamp);
-        }
-        else {
-            return ("", block.timestamp);
         }
     }
     
@@ -154,7 +151,7 @@ contract RentalContract {
     modifier whitdrawRules() {
         require((address(this).balance > 0),"Insufficient amount to withdraw");
         require(msg.sender == owner, "Only owner can make a withdrawal");
-        require(contractActivated == true);
+        require(contractActivated == true, "The contract must be in active status to make a withdrawal");
         _;
     }
 
@@ -162,5 +159,4 @@ contract RentalContract {
         payable(owner).transfer(address(this).balance);
     }
 
-    
 }
