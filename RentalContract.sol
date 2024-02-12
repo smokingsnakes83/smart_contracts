@@ -33,7 +33,7 @@ contract RentalContract {
     modifier startContractRules(address _renter, uint _contractDuration) {
         require(msg.sender == owner, "Only the owner can start a Contract");
         require((address(this).balance) > 0, "Deposit 0.001 ETH to start contract");
-        require((address(this).balance) == 10**15, "deposit amount 0.001 ETH");
+        require((address(this).balance) >= 10**15, "deposit amount 0.001 ETH");
         require(_renter != address(owner),"The renter's address must be different from the owner's address");
         require(_renter != address(0), "Renter address invalid");
         require(_contractDuration > 0, "The contract duration must be greater than 0");
@@ -42,7 +42,9 @@ contract RentalContract {
         require(renter == address(0), "contract is already active");
          _;
     }
-
+    
+    event sendChange(address renter, uint change);
+    
     function startContract(address payable  _renter,/*string memory _propertyAddress,*/ uint _contractDuration) 
         public startContractRules(_renter, _contractDuration) {
         renter = _renter;
@@ -50,7 +52,19 @@ contract RentalContract {
         contractDuration = _contractDuration;
         contractStartTimestamp = block.timestamp;
         endContract = (contractStartTimestamp + contractDuration);
-        contractActivated = true;
+        contractActivated = true;      
+
+        //If the renter deposits more than 0.001 ETH, the change will be returned to their wallet
+        if((address(this).balance) > 10**15) {
+            uint totalBalance;
+            uint change;
+
+            totalBalance = (address(this).balance);
+            change = (address(this).balance) - 10**15;
+            payable(renter).transfer(change);
+
+            emit sendChange(renter, change);
+        }
 
         payable(owner).transfer(address(this).balance);
 
