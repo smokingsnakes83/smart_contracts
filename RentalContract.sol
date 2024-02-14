@@ -14,7 +14,6 @@ contract RentalContract {
     
     constructor() {
         owner = msg.sender;
-        contractStartTimestamp = block.timestamp;
         priceInWei = 10**15;
     }
 
@@ -32,8 +31,8 @@ contract RentalContract {
 
     modifier startContractRules(address _renter, uint _contractDuration) {
         require(msg.sender == owner, "Only the owner can start a Contract");
-        require((address(this).balance) > 0, "Deposit 0.001 ETH to start contract");
-        require((address(this).balance) >= 10**15, "deposit amount 0.001 ETH");
+        require((address(this).balance) > 0, "Deposit 0.001 SepoliaETH to start contract");
+        require((address(this).balance) >= 10**15, "deposit amount 0.001 SepoliaETH");
         require(_renter != address(owner),"The renter's address must be different from the owner's address");
         require(_renter != address(0), "Renter address invalid");
         require(_contractDuration > 0, "The contract duration must be greater than 0");
@@ -54,7 +53,7 @@ contract RentalContract {
         endContract = (contractStartTimestamp + contractDuration);
         contractActivated = true;      
 
-        //If the renter deposits more than 0.001 ETH, the change will be returned to their wallet
+        //If the renter deposits more than 0.001 SepoliaETH, the change will be returned to their wallet
         if((address(this).balance) > 10**15) {
             uint totalBalance;
             uint change;
@@ -65,7 +64,7 @@ contract RentalContract {
 
             emit sendChange(renter, change);
         }
-
+    
         payable(owner).transfer(address(this).balance);
 
         emit starting(
@@ -109,8 +108,8 @@ contract RentalContract {
         require(_renovation > 0, "The renovation must be greater than 0");
         require(_renter != address(0));
         require(block.timestamp > endContract, "The renewal day must be greater than end day contract");
-        require((address(this).balance) > 0, "Deposit 0.001 ETH to renew contract");
-        require((address(this).balance) == 10**15, "deposit amount 0.001 ETH");   
+        require((address(this).balance) > 0, "Deposit 0.001 SepoliaETH to renew contract");
+        require((address(this).balance) >= 10**15, "deposit amount 0.001 SepoliaETH");   
         _;
     }
 
@@ -119,7 +118,19 @@ contract RentalContract {
         renovation = _renovation;
         endContract = block.timestamp;
         endContract += renovation;
-        contractDuration += renovation;           
+        contractDuration += renovation;    
+
+        if((address(this).balance) > 10**15) {
+            uint totalBalanceInRenovation;
+            uint renovationChange;
+
+            totalBalanceInRenovation = (address(this).balance);
+            renovationChange = totalBalanceInRenovation - 10**15;
+            payable(renter).transfer(renovationChange);
+        }  
+
+        payable(owner).transfer(address(this).balance);
+    
     }
 
     function getRenovationContract() public view returns (address, uint) {
