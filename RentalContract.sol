@@ -43,6 +43,7 @@ contract RentalContract {
     }
     
     event sendChange(address renter, uint change);
+    event paymentRental(address owner, uint value);
     
     function startContract(address payable  _renter,/*string memory _propertyAddress,*/ uint _contractDuration) 
         public startContractRules(_renter, _contractDuration) {
@@ -64,8 +65,10 @@ contract RentalContract {
 
             emit sendChange(renter, change);
         }
-    
+
+        uint payment = (address(this).balance); 
         payable(owner).transfer(address(this).balance);
+        emit paymentRental(owner, payment );
 
         emit starting(
             owner,
@@ -113,6 +116,8 @@ contract RentalContract {
         _;
     }
 
+    event paymentRenovationRental(address owner, uint value);
+
     function renovationContract(address payable  _renter, uint _renovation) public renovationRules(_renter, _renovation) {
         renter = _renter;
         renovation = _renovation;
@@ -120,6 +125,7 @@ contract RentalContract {
         endContract += renovation;
         contractDuration += renovation;    
 
+        //If the renter deposits more than 0.001 SepoliaETH, the change will be returned to their wallet
         if((address(this).balance) > 10**15) {
             uint totalBalanceInRenovation;
             uint renovationChange;
@@ -127,10 +133,12 @@ contract RentalContract {
             totalBalanceInRenovation = (address(this).balance);
             renovationChange = totalBalanceInRenovation - 10**15;
             payable(renter).transfer(renovationChange);
+
         }  
 
+        uint paymentRenovation = (address(this).balance);
         payable(owner).transfer(address(this).balance);
-    
+        emit paymentRenovationRental(owner, paymentRenovation );
     }
 
     function getRenovationContract() public view returns (address, uint) {
@@ -143,11 +151,14 @@ contract RentalContract {
         _;
     }
 
-    event revoked(bool contractActivated, address owner);
+    event revoked(bool contractActivated);
 
     function revokeContract() public revoke {
         contractActivated = false;
-        emit revoked(contractActivated, owner);
+        
+        delete renter;
+        
+        emit revoked(contractActivated);
     }
 
     function statusCheck() public view returns (string memory, uint) {
@@ -182,6 +193,16 @@ contract RentalContract {
 
     function withdraw() external whitdrawRules {
         payable(owner).transfer(address(this).balance);
+    }
+
+    modifier ChangeOwnerRules() {
+        require((address(this).balance) >= 10**17, "Deposit 0.01 SepoliaETH to become the owner of the contract ");
+        require(contractActivated == false, "The contract is already active");
+        require(renter != address(0), "The Contract has been revoked");
+        _;
+    }
+    function changeOwner(address newOwner) ChangeOwnerRules public {
+        owner = newOwner;
     }
 
 }
