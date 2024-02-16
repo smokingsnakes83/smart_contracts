@@ -4,7 +4,6 @@ pragma solidity 0.8.24;
 contract RentalContract {
     address public owner;
     address payable public renter;
-    /*string public propertyAddress;*/
     uint public priceInWei = 0;
     uint public contractDuration = 0;
     uint public contractStartTimestamp = 0;
@@ -17,15 +16,13 @@ contract RentalContract {
         priceInWei = 10**15;
     }
 
-    event starting(
+    event starting_(
         address owner,
         address renter,
-        /*string propertyAddress,*/
         uint priceInWei,
         uint contractDuration,
         uint contractStartTimestamp,
         uint endContract,
-        uint renovation,
         bool contractActivated
     );
 
@@ -42,13 +39,12 @@ contract RentalContract {
          _;
     }
     
-    event sendChange(address renter, uint change);
-    event paymentRental(address owner, uint value);
+    event sendChange(address, uint);
+    event paymentRental(address, uint);
     
     function startContract(address payable  _renter,/*string memory _propertyAddress,*/ uint _contractDuration) 
         public startContractRules(_renter, _contractDuration) {
         renter = _renter;
-        /*propertyAddress = _propertyAddress;*/
         contractDuration = _contractDuration;
         contractStartTimestamp = block.timestamp;
         endContract = (contractStartTimestamp + contractDuration);
@@ -68,17 +64,15 @@ contract RentalContract {
 
         uint payment = (address(this).balance); 
         payable(owner).transfer(address(this).balance);
-        emit paymentRental(owner, payment );
+        emit paymentRental(owner, payment);
 
-        emit starting(
+        emit starting_(
             owner,
             renter,
-            /*propertyAddress,*/
             priceInWei,
             contractDuration,
             contractStartTimestamp,
             endContract,
-            renovation,
             contractActivated
         );
     }
@@ -88,7 +82,6 @@ contract RentalContract {
         view
         returns (
             address,
-            /*string memory,*/
             uint,
             uint,
             uint,
@@ -97,7 +90,6 @@ contract RentalContract {
     {
         return (
             renter,
-            /*propertyAddress,*/
             priceInWei,
             contractDuration,
             contractStartTimestamp,
@@ -116,7 +108,9 @@ contract RentalContract {
         _;
     }
 
-    event paymentRenovationRental(address owner, uint value);
+    event paymentRenovationRental_(address, uint);
+    event renovationChange_(address, uint, uint);
+    event renovationTime_(address, uint);
 
     function renovationContract(address payable  _renter, uint _renovation) public renovationRules(_renter, _renovation) {
         renter = _renter;
@@ -134,11 +128,15 @@ contract RentalContract {
             renovationChange = totalBalanceInRenovation - 10**15;
             payable(renter).transfer(renovationChange);
 
+            emit renovationChange_(renter, renovation, renovationChange);
         }  
+        else if((address(this).balance) == 10**15) {
+            emit renovationTime_(renter, renovation);
+        }
 
         uint paymentRenovation = (address(this).balance);
         payable(owner).transfer(address(this).balance);
-        emit paymentRenovationRental(owner, paymentRenovation );
+        emit paymentRenovationRental_(owner, paymentRenovation);
     }
 
     function getRenovationContract() public view returns (address, uint) {
@@ -151,14 +149,12 @@ contract RentalContract {
         _;
     }
 
-    event revoked(bool contractActivated);
+    event revoked_(string);
 
     function revokeContract() public revoke {
         contractActivated = false;
-        
-        delete renter;
-        
-        emit revoked(contractActivated);
+        string memory revoked = "Contract Revoked";
+        emit revoked_(revoked);
     }
 
     function statusCheck() public view returns (string memory, uint) {
@@ -178,10 +174,10 @@ contract RentalContract {
         }
     }
     
-    event amountReceive(address _renter, uint value);
+    event amountReceive_(address _renter, uint value);
 
     receive() external payable { 
-        emit amountReceive(msg.sender, msg.value);
+        emit amountReceive_(msg.sender, msg.value);
     }   
 
     modifier whitdrawRules() {
@@ -195,7 +191,7 @@ contract RentalContract {
         payable(owner).transfer(address(this).balance);
     }
 
-    modifier ChangeOwnerRules() {
+    /*modifier ChangeOwnerRules() {
         require((address(this).balance) >= 10**17, "Deposit 0.01 SepoliaETH to become the owner of the contract ");
         require(contractActivated == false, "The contract is already active");
         require(renter != address(0), "The Contract has been revoked");
@@ -203,6 +199,5 @@ contract RentalContract {
     }
     function changeOwner(address newOwner) ChangeOwnerRules public {
         owner = newOwner;
-    }
-
+    }*/
 }
