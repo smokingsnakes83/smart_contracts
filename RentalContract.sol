@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity ^0.8.19;
 
 contract RentalContract {
     address public owner;
@@ -51,20 +51,10 @@ contract RentalContract {
         contractActivated = true;      
 
         //If the renter deposits more than 0.001 SepoliaETH, the change will be returned to their wallet
-        if((address(this).balance) > 10**15) {
-            uint totalBalance;
-            uint change;
+        Change();
 
-            totalBalance = (address(this).balance);
-            change = (address(this).balance) - 10**15;
-            payable(renter).transfer(change);
-
-            emit sendChange(renter, change);
-        }
-
-        uint payment = (address(this).balance); 
-        payable(owner).transfer(address(this).balance);
-        emit paymentRental(owner, payment);
+        //Execute payment to the contract owner
+        paymentToOwner();
 
         emit starting_(
             owner,
@@ -120,23 +110,10 @@ contract RentalContract {
         contractDuration += renovation;    
 
         //If the renter deposits more than 0.001 SepoliaETH, the change will be returned to their wallet
-        if((address(this).balance) > 10**15) {
-            uint totalBalanceInRenovation;
-            uint renovationChange;
-
-            totalBalanceInRenovation = (address(this).balance);
-            renovationChange = totalBalanceInRenovation - 10**15;
-            payable(renter).transfer(renovationChange);
-
-            emit renovationChange_(renter, renovation, renovationChange);
-        }  
-        else if((address(this).balance) == 10**15) {
-            emit renovationTime_(renter, renovation);
-        }
-
-        uint paymentRenovation = (address(this).balance);
-        payable(owner).transfer(address(this).balance);
-        emit paymentRenovationRental_(owner, paymentRenovation);
+        Change();
+        
+        //Execute payment to the contract owner
+        paymentToOwner();
     }
 
     function getRenovationContract() public view returns (address, uint) {
@@ -176,7 +153,7 @@ contract RentalContract {
     
     event amountReceive_(address _renter, uint value);
 
-    receive() external payable { 
+    receive() external payable {
         emit amountReceive_(msg.sender, msg.value);
     }   
 
@@ -189,6 +166,27 @@ contract RentalContract {
 
     function withdraw() external whitdrawRules {
         payable(owner).transfer(address(this).balance);
+    }
+
+    //Execute payment to the contract owner
+    function paymentToOwner() internal {
+        uint payment = (address(this).balance); 
+        payable(owner).transfer(address(this).balance);
+        emit paymentRental(owner, payment);
+    }
+    
+    //If the renter deposits more than 0.001 SepoliaETH, the change will be returned to their wallet
+    function Change() internal {
+        if((address(this).balance) > 10**15) {
+            uint totalBalance;
+            uint change;
+
+            totalBalance = (address(this).balance);
+            change = (address(this).balance) - 10**15;
+            payable(renter).transfer(change);
+
+            emit sendChange(renter, change);
+        }
     }
 
     /*modifier ChangeOwnerRules() {
