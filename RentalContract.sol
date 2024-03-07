@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
-contract RentalContract {
+contract RentContract {
     address public owner;
     address payable public renter;
-    uint public priceInWei;
+    uint256 public rentPrice;
     uint public contractDuration;
     uint public contractStartTimestamp;
     uint public endContract;
@@ -13,7 +13,6 @@ contract RentalContract {
     
     constructor() {
         owner = msg.sender;
-        priceInWei = 10**15;
         contractDuration = 0;
         contractStartTimestamp = 0;
         endContract = 0;
@@ -21,33 +20,32 @@ contract RentalContract {
         contractActivated = false;
     }
 
-    event starting_(
+    event starting(
         address owner,
         address renter,
-        uint priceInWei,
+        uint256 rentPrice,
         uint contractDuration,
         uint contractStartTimestamp,
         uint endContract,
         bool contractActivated
     );
 
-    modifier startContractRules(address _renter, uint _contractDuration) {
+    modifier startContractRules(address payable _renter, uint256 _contractDuration ) {
         require(msg.sender == owner, "Only the owner can start a Contract");
-        require((address(this).balance) > 0, "Deposit 0.001 SepoliaETH to start contract");
-        require((address(this).balance) >= priceInWei, "deposit amount 0.001 SepoliaETH");
-        require(_renter != address(owner),"The renter's address must be different from the owner's address");
-        require(_renter != address(0), "Renter address invalid");
+        require((address(this).balance) > 0, "Insufficient balance in the contract, it is necessary to deposit the agreed rent price");
+        require((address(this).balance) >= rentPrice, "Deposit the agreed rent price");
+        require(_renter != msg.sender,"The renter's address must be different from the owner's address");
         require(_contractDuration > 0, "The contract duration must be greater than 0");
         
-        //avoid reassigning variable state, avoid the same rental contract from being issued to more than one time
-        //require(renter == address(0), "contract is already active"); //comment to run the test
+        //avoid reassigning variable state, avoid the same rent contract from being issued to more than one time
+        //require(renter == address(0), "contract is already active"); //commented to run the test
          _;
     }
     
-    event sendChange(address, uint);
-    event paymentRental(address, uint);
+    event changeSend(address, uint);
+    event rentPayment(address, uint);
     
-    function startContract(address payable  _renter,/*string memory _propertyAddress,*/ uint _contractDuration) 
+    function startContract(address payable  _renter, uint _contractDuration) 
         public startContractRules(_renter, _contractDuration) {
         renter = _renter;
         contractDuration = _contractDuration;
@@ -55,16 +53,16 @@ contract RentalContract {
         endContract = (contractStartTimestamp + contractDuration);
         contractActivated = true;      
 
-        //If the renter deposits more than 0.001 SepoliaETH, the change will be returned to their wallet
-        Change();
+        //If the renter deposits more super.startContract(renter, contractDuration);than 0.001 SepoliaETH, the change will be returned to their wallet
+        change();
 
         //Execute payment to the contract owner
         paymentToOwner();
 
-        emit starting_(
+        emit starting(
             owner,
             renter,
-            priceInWei,
+            rentPrice,
             contractDuration,
             contractStartTimestamp,
             endContract,
@@ -85,29 +83,25 @@ contract RentalContract {
     {
         return (
             renter,
-            priceInWei,
+            rentPrice,
             contractDuration,
             contractStartTimestamp,
             endContract
         );
     }
 
-    modifier renovationRules(address payable  _renter, uint _renovation) {
+    modifier renovationRules(uint _renovation) {
         require(contractActivated == true, "The contract is not active");
-        require(_renter == renter, "Only the renter can renew the rental contract");
+        require((address(this).balance) >= rentPrice, "Deposit the agreed amount to renew the contract");
+        require(msg.sender == renter, "Only the renter can renew the rent contract");
         require(_renovation > 0, "The renovation must be greater than 0");
-        require(_renter != address(0));
-        require(block.timestamp > endContract, "The renewal day must be greater than end day contract");
-        require((address(this).balance) > 0, "Deposit 0.001 SepoliaETH to renew contract");
-        require((address(this).balance) >= priceInWei, "deposit amount 0.001 SepoliaETH");   
+        require(block.timestamp > endContract, "The contract has not yet expired");
         _;
     }
 
-    event paymentRenovationRental_(address, uint);
-    event renovationChange_(address, uint, uint);
-    event renovationTime_(address, uint);
+    event renovationTime(uint);
 
-    function renovationContract(address payable  _renter, uint _renovation) public renovationRules(_renter, _renovation) {
+    function renovationContract(address payable  _renter, uint _renovation) public renovationRules(_renovation) {
         renter = _renter;
         renovation = _renovation;
         endContract = block.timestamp;
@@ -115,10 +109,12 @@ contract RentalContract {
         contractDuration += renovation;    
 
         //If the renter deposits more than 0.001 SepoliaETH, the change will be returned to their wallet
-        Change();
+        change();
         
         //Execute payment to the contract owner
         paymentToOwner();
+
+        emit renovationTime(renovation);
     }
 
     function getRenovationContract() public view returns (address, uint) {
@@ -131,12 +127,12 @@ contract RentalContract {
         _;
     }
 
-    event revoked_(string);
+    event revoked(string);
 
     function revokeContract() public revoke {
         contractActivated = false;
-        string memory revoked = "Contract Revoked";
-        emit revoked_(revoked);
+        string memory _revoked = "Contract Revoked";
+        emit revoked(_revoked);
     }
 
     function statusCheck() public view returns (string memory, uint) {
@@ -159,6 +155,7 @@ contract RentalContract {
     event amountReceive_(address _renter, uint value);
 
     receive() external payable {
+        rentPrice = msg.value;
         emit amountReceive_(msg.sender, msg.value);
     }   
 
@@ -166,20 +163,20 @@ contract RentalContract {
     function paymentToOwner() internal {
         uint payment = (address(this).balance); 
         payable(owner).transfer(address(this).balance);
-        emit paymentRental(owner, payment);
+        emit rentPayment(owner, payment);
     }
     
-    //If the renter deposits more than 0.001 SepoliaETH, the change will be returned to their wallet
-    function Change() internal {
-        if((address(this).balance) > priceInWei) {
+    //If the renter deposits more than rent price, the change will be returned to their wallet
+    function change() internal {
+        if((address(this).balance) > rentPrice) {
             uint totalBalance;
-            uint change;
+            uint _change;
 
             totalBalance = (address(this).balance);
-            change = (address(this).balance) - priceInWei;
-            payable(renter).transfer(change);
+            _change = (address(this).balance) - rentPrice;
+            payable(renter).transfer(_change);
 
-            emit sendChange(renter, change);
+            emit changeSend(renter, _change);
         }
     }
 
@@ -190,17 +187,4 @@ contract RentalContract {
     function changeOwner(address newOwner) ChangeOwnerRules public {
         owner = newOwner;
     }
-
-    //  modifier whitdrawRules() {
-    //     require((address(this).balance > 0),"Insufficient amount to withdraw");
-    //     require(msg.sender == owner, "Only owner can make a withdrawal");
-    //     require(contractActivated == true, "The contract must be in active status to make a withdrawal");
-    //     _;
-    // }
-
-    // function withdraw() external whitdrawRules {
-    //     payable(owner).transfer(address(this).balance);
-    // }
-
-    
 }
