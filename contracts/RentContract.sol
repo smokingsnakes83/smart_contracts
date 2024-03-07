@@ -166,7 +166,7 @@ contract RentContract {
         emit rentPayment(owner, payment);
     }
     
-    //If the renter deposits more than 0.001 SepoliaETH, the change will be returned to their wallet
+    //If the renter deposits more than rent price, the change will be returned to their wallet
     function change() internal {
         if((address(this).balance) > rentPrice) {
             uint totalBalance;
