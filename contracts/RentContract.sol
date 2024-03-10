@@ -9,18 +9,24 @@ contract RentContract {
     uint public contractStartTimestamp;
     uint public endContract;
     uint public renovation;
+    uint8 public statusWaiting;
+    uint8 public statusActivated;
+    uint8 public statusExpired;
+    uint8 public statusRevoked;
+    bool public revoked;
     bool public contractActivated;
-    
+
     constructor() {
         owner = msg.sender;
-        contractDuration = 0;
-        contractStartTimestamp = 0;
-        endContract = 0;
-        renovation = 0;
         contractActivated = false;
+        statusWaiting = 0;
+        statusActivated = 1;
+        statusExpired = 2;
+        statusRevoked = 3;
+        revoked = false;
     }
 
-    event starting(
+    event _starting(
         address owner,
         address renter,
         uint256 rentPrice,
@@ -30,28 +36,41 @@ contract RentContract {
         bool contractActivated
     );
 
-    modifier startContractRules(address payable _renter, uint256 _contractDuration ) {
+    modifier setPriceRules() {
+        require(msg.sender == owner, "Only the owner can set the rental price");
+        _;
+    }
+
+    function setPrice(uint256 _rentPrice) public setPriceRules {
+        rentPrice = _rentPrice;
+    }
+
+    event _amountReceive(address renter, uint value);
+    receive() external payable {
+        renter = payable(msg.sender);
+        emit _amountReceive(msg.sender, msg.value);
+    }
+
+    modifier startContractRules(uint256 _contractDuration) {
         require(msg.sender == owner, "Only the owner can start a Contract");
+        require(contractActivated == false, "Contract is already activated");
+        require(revoked == false, "The contract was revoked");
         require((address(this).balance) > 0, "Insufficient balance in the contract, it is necessary to deposit the agreed rent price");
         require((address(this).balance) >= rentPrice, "Deposit the agreed rent price");
-        require(_renter != msg.sender,"The renter's address must be different from the owner's address");
-        require(_contractDuration > 0, "The contract duration must be greater than 0");
+        require(renter != msg.sender, "The renter's address must be different from the owner's address");
+        require(_contractDuration > 0,"The contract duration must be greater than 0");
         
-        //avoid reassigning variable state, avoid the same rent contract from being issued to more than one time
-        //require(renter == address(0), "contract is already active"); //commented to run the test
-         _;
+        _;
     }
-    
+
     event changeSend(address, uint);
     event rentPayment(address, uint);
-    
-    function startContract(address payable  _renter, uint _contractDuration) 
-        public startContractRules(_renter, _contractDuration) {
-        renter = _renter;
+
+    function startContract(uint _contractDuration) public startContractRules(_contractDuration) {
         contractDuration = _contractDuration;
         contractStartTimestamp = block.timestamp;
         endContract = (contractStartTimestamp + contractDuration);
-        contractActivated = true;      
+        contractActivated = true;
 
         //If the renter deposits more super.startContract(renter, contractDuration);than 0.001 SepoliaETH, the change will be returned to their wallet
         change();
@@ -59,7 +78,7 @@ contract RentContract {
         //Execute payment to the contract owner
         paymentToOwner();
 
-        emit starting(
+        emit _starting(
             owner,
             renter,
             rentPrice,
@@ -73,13 +92,7 @@ contract RentContract {
     function getStarContract()
         public
         view
-        returns (
-            address,
-            uint,
-            uint,
-            uint,
-            uint
-        )
+        returns (address, uint, uint, uint, uint)
     {
         return (
             renter,
@@ -101,74 +114,67 @@ contract RentContract {
 
     event renovationTime(uint);
 
-    function renovationContract(address payable  _renter, uint _renovation) public renovationRules(_renovation) {
-        renter = _renter;
+    function renewContract(uint _renovation) public renovationRules(_renovation) {
         renovation = _renovation;
         endContract = block.timestamp;
         endContract += renovation;
-        contractDuration += renovation;    
+        contractDuration += renovation;
 
         //If the renter deposits more than 0.001 SepoliaETH, the change will be returned to their wallet
         change();
-        
+
         //Execute payment to the contract owner
         paymentToOwner();
 
         emit renovationTime(renovation);
     }
 
-    function getRenovationContract() public view returns (address, uint) {
+    function getRenewContract() public view returns (address, uint) {
         return (renter, renovation);
     }
 
-    modifier revoke() {
+    modifier revocationRules() {
         require(msg.sender == owner, "Only owner can to revoke the contract");
         require(contractActivated == true, "Contract is not active");
         _;
     }
 
-    event revoked(string);
+    event _revokeContract(uint8);
 
-    function revokeContract() public revoke {
+    function revokeContract() public revokeRules() {
         contractActivated = false;
-        string memory _revoked = "Contract Revoked";
-        emit revoked(_revoked);
+        revoked = true;
+        emit _revokeContract(statusRevoked);
     }
 
-    function statusCheck() public view returns (string memory, uint) {
-        string memory expired = "Expired";
-        string memory activated = "Active";
-        string memory waiting = "Waiting for renter data";
-        string memory revokedMsg = "Revoked";
+    event _statusCheck(uint8);
 
+    function statusCheck() public returns (uint8) {
         if (contractActivated == true && block.timestamp < endContract) {
-            return (activated, block.timestamp);
-        } else if (contractActivated == false && renter != address(0)) {
-            return (revokedMsg, block.timestamp);
+            emit _statusCheck(statusActivated);
+            return statusActivated;
+        } else if (revoked == true) {
+            emit _statusCheck(statusRevoked);
+            return statusRevoked;
         } else if (block.timestamp > endContract && contractActivated == true) {
-            return (expired, block.timestamp);
+            emit _statusCheck(statusExpired);
+            return statusExpired;
         } else {
-            return (waiting, block.timestamp);
+            emit _statusCheck(statusWaiting);
+            return statusWaiting;
         }
     }
-    
-    event amountReceive_(address _renter, uint value);
-
-    receive() external payable {
-        rentPrice = msg.value;
-        emit amountReceive_(msg.sender, msg.value);
-    }   
 
     //Execute payment to the contract owner
     function paymentToOwner() internal {
-        uint payment = (address(this).balance); 
+        uint payment = (address(this).balance);
         payable(owner).transfer(address(this).balance);
         emit rentPayment(owner, payment);
     }
-    
+
     //If the renter deposits more than rent price, the change will be returned to their wallet
     function change() internal {
-        if((address(this).balance) > rentPrice) {
+        if ((address(this).balance) > rentPrice) {
             uint totalBalance;
             uint _change;
 
@@ -181,10 +187,11 @@ contract RentContract {
     }
 
     modifier ChangeOwnerRules() {
-        require(msg.sender == owner, "Only the owner can transfer ownership of the contract");
+        require(
+            msg.sender == owner, "Only the owner can transfer ownership of the contract");
         _;
     }
-    function changeOwner(address newOwner) ChangeOwnerRules public {
+    function changeOwner(address newOwner) public ChangeOwnerRules {
         owner = newOwner;
     }
 }
