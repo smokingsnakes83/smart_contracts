@@ -26,15 +26,20 @@ contract RentContract {
         revoked = false;
     }
 
-    event _starting(
-        address owner,
-        address renter,
-        uint256 rentPrice,
-        uint contractDuration,
-        uint contractStartTimestamp,
-        uint endContract,
-        bool contractActivated
+    event _starting( address owner, address renter, uint256 rentPrice, uint contractDuration,
+        uint contractStartTimestamp, uint endContract, bool contractActivated
     );
+    event amountReceive(address renter, uint value);
+    event renovationTime(uint renovation);
+    event changeSend(address renter, uint _change);
+    event rentPayment(address owner, uint payment);
+    event _revoked(uint8 statusRevoked);
+    event status(uint8);
+
+    receive() external payable {
+        renter = payable(msg.sender);
+        emit amountReceive(msg.sender, msg.value);
+    }
 
     modifier setPriceRules() {
         require(msg.sender == owner, "Only the owner can set the rental price");
@@ -45,26 +50,16 @@ contract RentContract {
         rentPrice = _rentPrice;
     }
 
-    event _amountReceive(address renter, uint value);
-    receive() external payable {
-        renter = payable(msg.sender);
-        emit _amountReceive(msg.sender, msg.value);
-    }
-
     modifier startContractRules(uint256 _contractDuration) {
         require(msg.sender == owner, "Only the owner can start a Contract");
         require(contractActivated == false, "Contract is already activated");
         require(revoked == false, "The contract was revoked");
-        require((address(this).balance) > 0, "Insufficient balance in the contract, it is necessary to deposit the agreed rent price");
+        require((address(this).balance) >= rentPrice, "Insufficient balance in the contract, it is necessary to deposit the agreed rent price");
         require((address(this).balance) >= rentPrice, "Deposit the agreed rent price");
-        require(renter != msg.sender, "The renter's address must be different from the owner's address");
         require(_contractDuration > 0,"The contract duration must be greater than 0");
         
         _;
     }
-
-    event changeSend(address, uint);
-    event rentPayment(address, uint);
 
     function startContract(uint _contractDuration) public startContractRules(_contractDuration) {
         contractDuration = _contractDuration;
@@ -112,15 +107,13 @@ contract RentContract {
         _;
     }
 
-    event renovationTime(uint);
-
     function renewContract(uint _renovation) public renovationRules(_renovation) {
         renovation = _renovation;
         endContract = block.timestamp;
         endContract += renovation;
         contractDuration += renovation;
 
-        //If the renter deposits more than 0.001 SepoliaETH, the change will be returned to their wallet
+        //If the renter deposits more than the agreed rent price, the change will be returned to their wallet
         change();
 
         //Execute payment to the contract owner
@@ -139,28 +132,24 @@ contract RentContract {
         _;
     }
 
-    event _revokeContract(uint8);
-
-    function revokeContract() public revokeRules() {
+    function revokeContract() public revocationRules() {
         contractActivated = false;
         revoked = true;
-        emit _revokeContract(statusRevoked);
+        emit _revoked(statusRevoked);
     }
-
-    event _statusCheck(uint8);
 
     function statusCheck() public returns (uint8) {
         if (contractActivated == true && block.timestamp < endContract) {
-            emit _statusCheck(statusActivated);
+            emit status(statusActivated);
             return statusActivated;
         } else if (revoked == true) {
-            emit _statusCheck(statusRevoked);
+            emit status(statusRevoked);
             return statusRevoked;
         } else if (block.timestamp > endContract && contractActivated == true) {
-            emit _statusCheck(statusExpired);
+            emit status(statusExpired);
             return statusExpired;
         } else {
-            emit _statusCheck(statusWaiting);
+            emit status(statusWaiting);
             return statusWaiting;
         }
     }
