@@ -73,7 +73,7 @@ contract RentContract {
         //Execute payment to the contract owner
         paymentToOwner();
 
-        emit _starting(
+        emit starting(
             owner,
             renter,
             rentPrice,
