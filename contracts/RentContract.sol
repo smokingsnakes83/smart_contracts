@@ -26,7 +26,7 @@ contract RentContract {
         revoked = false;
     }
 
-    event _starting( address owner, address renter, uint256 rentPrice, uint contractDuration,
+    event starting( address owner, address renter, uint256 rentPrice, uint contractDuration,
         uint contractStartTimestamp, uint endContract, bool contractActivated
     );
     event amountReceive(address renter, uint value);
