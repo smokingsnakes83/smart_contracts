@@ -2,13 +2,13 @@
 pragma solidity ^0.8.19;
 
 contract RentContract {
-    address public owner;
+    address payable public owner;
     address payable public renter;
     uint256 public rentPrice;
-    uint public contractDuration;
-    uint public contractStartTimestamp;
-    uint public endContract;
-    uint public renovation;
+    uint64 public contractDuration;
+    uint64 public contractStartTimestamp;
+    uint64 public endContract;
+    uint64 public renovation;
     uint8 public statusWaiting;
     uint8 public statusActivated;
     uint8 public statusExpired;
@@ -17,7 +17,7 @@ contract RentContract {
     bool public contractActivated;
 
     constructor() {
-        owner = msg.sender;
+        owner = payable(msg.sender);
         contractActivated = false;
         statusWaiting = 0;
         statusActivated = 1;
@@ -46,8 +46,9 @@ contract RentContract {
         _;
     }
 
-    function setPrice(uint256 _rentPrice) public setPriceRules {
+    function setPrice(uint256 _rentPrice) public setPriceRules returns (uint256) {
         rentPrice = _rentPrice;
+        return _rentPrice;
     }
 
     modifier startContractRules(uint256 _contractDuration) {
@@ -61,9 +62,9 @@ contract RentContract {
         _;
     }
 
-    function startContract(uint _contractDuration) public startContractRules(_contractDuration) {
+    function startContract(uint64 _contractDuration) public startContractRules(_contractDuration) returns(uint64, uint64, uint64, bool) {
         contractDuration = _contractDuration;
-        contractStartTimestamp = block.timestamp;
+        contractStartTimestamp = uint64(block.timestamp);
         endContract = (contractStartTimestamp + contractDuration);
         contractActivated = true;
 
@@ -82,6 +83,8 @@ contract RentContract {
             endContract,
             contractActivated
         );
+
+        return (contractDuration, contractStartTimestamp, endContract, contractActivated);
     }
 
     function getStarContract()
@@ -107,9 +110,9 @@ contract RentContract {
         _;
     }
 
-    function renewContract(uint _renovation) public renovationRules(_renovation) {
+    function renewContract(uint64 _renovation) public renovationRules(_renovation) returns (uint64) {
         renovation = _renovation;
-        endContract = block.timestamp;
+        endContract = uint64(block.timestamp);
         endContract += renovation;
         contractDuration += renovation;
 
@@ -120,6 +123,8 @@ contract RentContract {
         paymentToOwner();
 
         emit renovationTime(renovation);
+
+        return renovation;
     }
 
     function getRenewContract() public view returns (address, uint) {
@@ -180,7 +185,7 @@ contract RentContract {
             msg.sender == owner, "Only the owner can transfer ownership of the contract");
         _;
     }
-    function changeOwner(address newOwner) public ChangeOwnerRules {
+    function changeOwner(address payable newOwner) public ChangeOwnerRules {
         owner = newOwner;
     }
 }
