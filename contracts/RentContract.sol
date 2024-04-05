@@ -2,19 +2,19 @@
 pragma solidity ^0.8.19;
 
 contract RentContract {
-    address payable public owner;
-    address payable public renter;
-    uint256 public rentPrice;
-    uint64 public contractDuration;
-    uint64 public contractStartTimestamp;
-    uint64 public endContract;
-    uint64 public renovation;
-    uint8 public statusWaiting;
-    uint8 public statusActivated;
-    uint8 public statusExpired;
-    uint8 public statusRevoked;
-    bool public revoked;
-    bool public contractActivated;
+  address payable public owner;
+  address payable public renter;
+  uint256 public rentPrice;
+  uint64 public contractDuration;
+  uint64 public contractStartTimestamp;
+  uint64 public endContract;
+  uint64 public renovation;
+  uint8 public statusWaiting;
+  uint8 public statusActivated;
+  uint8 public statusExpired;
+  uint8 public statusRevoked;
+  bool public revoked;
+  bool public contractActivated;
 
     constructor() {
         owner = payable(msg.sender);
@@ -26,8 +26,13 @@ contract RentContract {
         revoked = false;
     }
 
-    event starting( address owner, address renter, uint256 rentPrice, uint contractDuration,
-        uint contractStartTimestamp, uint endContract, bool contractActivated);
+    event starting( address owner, 
+        address renter, 
+        uint256 rentPrice,
+        uint contractDuration,
+        uint contractStartTimestamp, 
+        uint endContract, 
+        bool contractActivated);
     event amountReceive(address renter, uint value);
     event renovationTime(uint renovation);
     event changeSend(address renter, uint _change);
@@ -85,11 +90,7 @@ contract RentContract {
         return (contractDuration, contractStartTimestamp, endContract, contractActivated);
     }
 
-    function getStarContract()
-        public
-        view
-        returns (address, uint, uint, uint, uint)
-    {
+    function getStarContract() public view  returns (address, uint, uint, uint, uint) {
         return (
             renter,
             rentPrice,
@@ -179,8 +180,7 @@ contract RentContract {
     }
 
     modifier ChangeOwnerRules() {
-        require(
-            msg.sender == owner, "Only the owner can transfer ownership of the contract");
+        require(msg.sender == owner, "Only the owner can transfer ownership of the contract");
         _;
     }
     function changeOwner(address payable newOwner) public ChangeOwnerRules {
