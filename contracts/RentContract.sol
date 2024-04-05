@@ -27,8 +27,7 @@ contract RentContract {
     }
 
     event starting( address owner, address renter, uint256 rentPrice, uint contractDuration,
-        uint contractStartTimestamp, uint endContract, bool contractActivated
-    );
+        uint contractStartTimestamp, uint endContract, bool contractActivated);
     event amountReceive(address renter, uint value);
     event renovationTime(uint renovation);
     event changeSend(address renter, uint _change);
@@ -48,14 +47,13 @@ contract RentContract {
 
     function setPrice(uint256 _rentPrice) public setPriceRules returns (uint256) {
         rentPrice = _rentPrice;
-        return _rentPrice;
+        return rentPrice;
     }
 
     modifier startContractRules(uint256 _contractDuration) {
         require(msg.sender == owner, "Only the owner can start a Contract");
         require(contractActivated == false, "Contract is already activated");
         require(revoked == false, "The contract was revoked");
-        require((address(this).balance) >= rentPrice, "Insufficient balance in the contract, it is necessary to deposit the agreed rent price");
         require((address(this).balance) >= rentPrice, "Deposit the agreed rent price");
         require(_contractDuration > 0,"The contract duration must be greater than 0");
         
@@ -106,7 +104,7 @@ contract RentContract {
         require((address(this).balance) >= rentPrice, "Deposit the agreed amount to renew the contract");
         require(msg.sender == renter, "Only the renter can renew the rent contract");
         require(_renovation > 0, "The renovation must be greater than 0");
-        require(block.timestamp > endContract, "The contract has not yet expired");
+        //require(block.timestamp > endContract, "The contract has not yet expired");
         _;
     }
 
