@@ -104,7 +104,7 @@ contract RentContract {
         require((address(this).balance) >= rentPrice, "Deposit the agreed amount to renew the contract");
         require(msg.sender == renter, "Only the renter can renew the rent contract");
         require(_renovation > 0, "The renovation must be greater than 0");
-        //require(block.timestamp > endContract, "The contract has not yet expired");
+        require(block.timestamp > endContract, "The contract has not yet expired");
         _;
     }
 
