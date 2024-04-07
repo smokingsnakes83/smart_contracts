@@ -2,19 +2,19 @@
 pragma solidity ^0.8.19;
 
 contract RentContract {
-  address payable public owner;
-  address payable public renter;
-  uint256 public rentPrice;
-  uint64 public contractDuration;
-  uint64 public contractStartTimestamp;
-  uint64 public endContract;
-  uint64 public renovation;
-  uint8 public statusWaiting;
-  uint8 public statusActivated;
-  uint8 public statusExpired;
-  uint8 public statusRevoked;
-  bool public revoked;
-  bool public contractActivated;
+    address payable public owner;
+    address payable public renter;
+    uint256 public rentPrice;
+    uint64 public contractDuration;
+    uint64 public contractStartTimestamp;
+    uint64 public endContract;
+    uint64 public renovation;
+    uint8 public statusWaiting;
+    uint8 public statusActivated;
+    uint8 public statusExpired;
+    uint8 public statusRevoked;
+    bool public revoked;
+    bool public contractActivated;
 
     constructor() {
         owner = payable(msg.sender);
@@ -33,20 +33,20 @@ contract RentContract {
         uint contractStartTimestamp, 
         uint endContract, 
         bool contractActivated);
-    event amountReceive(address renter, uint value);
+    event amountReceive(address renter, 
+        uint value);
     event renovationTime(uint renovation);
-    event changeSend(address renter, uint _change);
-    event rentPayment(address owner, uint payment);
+    event changeSend(address renter, 
+        uint _change);
+    event rentPayment(address owner, 
+        uint payment);
     event _revoked(uint8 statusRevoked);
     event status(uint8);
 
-    receive() external payable {
-        renter = payable(msg.sender);
-        emit amountReceive(msg.sender, msg.value);
-    }
-
     modifier setPriceRules() {
-        require(msg.sender == owner, "Only the owner can set the rental price");
+        require(msg.sender == owner, 
+        "Only the owner can set the rental price"
+        );
         _;
     }
 
@@ -56,12 +56,26 @@ contract RentContract {
     }
 
     modifier startContractRules(uint256 _contractDuration) {
-        require(msg.sender == owner, "Only the owner can start a Contract");
-        require(contractActivated == false, "Contract is already activated");
-        require(revoked == false, "The contract was revoked");
-        require((address(this).balance) >= rentPrice, "Deposit the agreed rent price");
-        require(_contractDuration > 0,"The contract duration must be greater than 0");
-        
+        require(
+            msg.sender == owner, 
+            "Only the owner can start a Contract"
+            );
+        require(
+            contractActivated == false,
+            "Contract is already activated"
+            );
+        require(
+            revoked == false, 
+            "The contract was revoked"
+            );
+        require(
+            (address(this).balance) >= rentPrice, 
+            "Deposit the agreed rent price"
+            );
+        require(
+            _contractDuration > 0,
+            "The contract duration must be greater than 0"
+            );
         _;
     }
 
@@ -87,7 +101,12 @@ contract RentContract {
             contractActivated
         );
 
-        return (contractDuration, contractStartTimestamp, endContract, contractActivated);
+        return (
+            contractDuration, 
+            contractStartTimestamp, 
+            endContract, 
+            contractActivated
+            );
     }
 
     function getStarContract() public view  returns (address, uint, uint, uint, uint) {
@@ -101,11 +120,26 @@ contract RentContract {
     }
 
     modifier renovationRules(uint _renovation) {
-        require(contractActivated == true, "The contract is not active");
-        require((address(this).balance) >= rentPrice, "Deposit the agreed amount to renew the contract");
-        require(msg.sender == renter, "Only the renter can renew the rent contract");
-        require(_renovation > 0, "The renovation must be greater than 0");
-        require(block.timestamp > endContract, "The contract has not yet expired");
+        require(
+            contractActivated == true, 
+            "The contract is not active"
+            );
+        require(
+            (address(this).balance) >= rentPrice, 
+            "Deposit the agreed amount to renew the contract"
+            );
+        require(
+            msg.sender == renter,
+            "Only the renter can renew the rent contract"
+            );
+        require(
+            _renovation > 0,
+            "The renovation must be greater than 0"
+            );
+        require(
+            block.timestamp > endContract, 
+            "The contract has not yet expired"
+            );
         _;
     }
 
@@ -127,12 +161,21 @@ contract RentContract {
     }
 
     function getRenewContract() public view returns (address, uint) {
-        return (renter, renovation);
+        return (
+            renter, 
+            renovation
+            );
     }
 
     modifier revocationRules() {
-        require(msg.sender == owner, "Only owner can to revoke the contract");
-        require(contractActivated == true, "Contract is not active");
+        require(
+            msg.sender == owner, 
+            "Only owner can to revoke the contract"
+            );
+        require(
+            contractActivated == true, 
+            "Contract is not active"
+            );
         _;
     }
 
@@ -158,6 +201,11 @@ contract RentContract {
         }
     }
 
+    receive() external payable {
+        renter = payable(msg.sender);
+        emit amountReceive(msg.sender, msg.value);
+    }
+    
     //Execute payment to the contract owner
     function paymentToOwner() internal {
         uint payment = (address(this).balance);
@@ -180,7 +228,10 @@ contract RentContract {
     }
 
     modifier ChangeOwnerRules() {
-        require(msg.sender == owner, "Only the owner can transfer ownership of the contract");
+        require(
+            msg.sender == owner, 
+            "Only the owner can transfer ownership of the contract"
+            );
         _;
     }
     function changeOwner(address payable newOwner) public ChangeOwnerRules {
